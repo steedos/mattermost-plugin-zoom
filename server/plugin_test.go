@@ -8,16 +8,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
-	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
-	"github.com/mattermost/mattermost-server/v5/plugin/plugintest/mock"
+	"github.com/mattermost/mattermost-server/model"
+	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/mattermost/mattermost-server/plugin/plugintest"
+	"github.com/mattermost/mattermost-server/plugin/plugintest/mock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -33,44 +31,58 @@ func TestPlugin(t *testing.T) {
 
 			str, _ := json.Marshal(user)
 
-			if _, err := w.Write(str); err != nil {
-				require.NoError(t, err)
+			w.Write([]byte(str))
+		} else if r.URL.Path == "/users/theuseremail/meetings/" {
+			meeting := &zoom.Meeting{
+				ID: 234,
 			}
+
+			str, _ := json.Marshal(meeting)
+
+			w.Write([]byte(str))
 		}
 	}))
 	defer ts.Close()
+
+	validMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
+	validMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
 	noAuthMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 
 	personalMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
 	personalMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
-	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
-	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
+	validWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=ENDED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
+	validWebhookRequest.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started"}`))
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=STARTED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
 
-	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
+	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=ENDED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
 
 	for name, tc := range map[string]struct {
 		Request            *http.Request
+		CreatePostError    *model.AppError
 		ExpectedStatusCode int
 	}{
 		"UnauthorizedMeetingRequest": {
 			Request:            noAuthMeetingRequest,
 			ExpectedStatusCode: http.StatusUnauthorized,
 		},
+		"ValidMeetingRequest": {
+			Request:            validMeetingRequest,
+			ExpectedStatusCode: http.StatusOK,
+		},
 		"ValidPersonalMeetingRequest": {
 			Request:            personalMeetingRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
-		"ValidStoppedWebhookRequest": {
-			Request:            validStoppedWebhookRequest,
+		"ValidWebhookRequest": {
+			Request:            validWebhookRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
 		"ValidStartedWebhookRequest": {
 			Request:            validStartedWebhookRequest,
-			ExpectedStatusCode: http.StatusNotImplemented,
+			ExpectedStatusCode: http.StatusOK,
 		},
 		"NoSecretWebhookRequest": {
 			Request:            noSecretWebhookRequest,
@@ -78,64 +90,37 @@ func TestPlugin(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			botUserID := "yei0BahL3cohya8vuaboShaeSi"
-
 			api := &plugintest.API{}
 
 			api.On("GetUser", "theuserid").Return(&model.User{
 				Id:    "theuserid",
 				Email: "theuseremail",
-			}, nil)
+			}, (*model.AppError)(nil))
 
-			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, nil)
+			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, (*model.AppError)(nil))
 
-			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, nil)
-			api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
-			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
-			api.On("GetPostsSince", "thechannelid", mock.AnythingOfType("int64")).Return(&model.PostList{}, nil)
+			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, (*model.AppError)(nil))
+			api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, (*model.AppError)(nil))
+			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, (*model.AppError)(nil))
 
-			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 234), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
-			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 123), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
+			api.On("KVSet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234), mock.AnythingOfType("[]uint8")).Return((*model.AppError)(nil))
+			api.On("KVSet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 123), mock.AnythingOfType("[]uint8")).Return((*model.AppError)(nil))
 
-			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
-			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
+			api.On("KVGet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return([]byte("thepostid"), (*model.AppError)(nil))
+			api.On("KVGet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 123)).Return([]byte("thepostid"), (*model.AppError)(nil))
 
-			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
-
-			api.On("LogWarn", mock.AnythingOfType("string")).Return()
-			api.On("LogDebug", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
-
-			path, err := filepath.Abs("..")
-			require.Nil(t, err)
-			api.On("GetBundlePath").Return(path, nil)
-			api.On("SetProfileImage", botUserID, mock.Anything).Return(nil)
-			api.On("RegisterCommand", mock.AnythingOfType("*model.Command")).Return(nil)
-
-			siteURL := "localhost"
-			api.On("GetConfig").Return(&model.Config{
-				ServiceSettings: model.ServiceSettings{
-					SiteURL: &siteURL,
-				},
-			})
+			api.On("KVDelete", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return((*model.AppError)(nil))
 
 			p := Plugin{}
 			p.setConfiguration(&configuration{
-				ZoomAPIURL:       ts.URL,
-				APIKey:           "theapikey",
-				APISecret:        "theapisecret",
-				WebhookSecret:    "thewebhooksecret",
-				EnableLegacyAuth: true,
+				ZoomAPIURL:    ts.URL,
+				APIKey:        "theapikey",
+				APISecret:     "theapisecret",
+				WebhookSecret: "thewebhooksecret",
 			})
 			p.SetAPI(api)
-
-			helpers := &plugintest.Helpers{}
-			helpers.On("EnsureBot", mock.AnythingOfType("*model.Bot")).Return(botUserID, nil)
-			p.SetHelpers(helpers)
-
-			err = p.OnActivate()
-			require.Nil(t, err)
-
-			tc.Request.Header.Add("Content-Type", "application/json")
+			err := p.OnActivate()
+			assert.Nil(t, err)
 
 			w := httptest.NewRecorder()
 			p.ServeHTTP(&plugin.Context{}, w, tc.Request)

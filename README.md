@@ -1,22 +1,12 @@
-# Mattermost Zoom Plugin 
+# mattermost-plugin-zoom ![CircleCI branch](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-zoom/master.svg)
 
-[![Build Status](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-zoom/master)](https://circleci.com/gh/mattermost/mattermost-plugin-zoom)
-[![Code Coverage](https://img.shields.io/codecov/c/github/mattermost/mattermost-plugin-zoom/master)](https://codecov.io/gh/mattermost/mattermost-plugin-zoom)
-[![Release](https://img.shields.io/github/v/release/mattermost/mattermost-plugin-zoom)](https://github.com/mattermost/mattermost-plugin-zoom/releases/latest)
-[![HW](https://img.shields.io/github/issues/mattermost/mattermost-plugin-zoom/Up%20For%20Grabs?color=dark%20green&label=Help%20Wanted)](https://github.com/mattermost/mattermost-plugin-zoom/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22Up+For+Grabs%22+label%3A%22Help+Wanted%22)
+This plugin will add UI for users to start new Zoom meetings in a Mattermost channel. Posts are created when a meeting starts and edited when a meeting ends.
 
+## Installation
 
-**Maintainer:** [@larkox](https://github.com/larkox)
-**Co-Maintainer:** [@mickmister](https://github.com/mickmister)
+Go to the [releases page of this Github repository](https://github.com/mattermost/mattermost-plugin-zoom/releases) and download the latest release for your server architecture. You can upload this file in the Mattermost system console to install the plugin.
 
-Start and join voice calls, video calls and use screen sharing with your team members via Zoom.
-
-Usage & Setup Guide
------
-
-Check our [GitBook](https://app.gitbook.com/@mattermost/s/plugin-zoom/) for all the documentation regarding to this plugin.
-
-## Development
+## Developing
 
 This plugin contains both a server and web app portion.
 

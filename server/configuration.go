@@ -4,11 +4,10 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
-
-	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 // configuration captures the plugin's external configuration as exposed in the Mattermost server
@@ -23,17 +22,11 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
-	ZoomURL           string
-	ZoomAPIURL        string
-	EnableLegacyAuth  bool
-	APIKey            string
-	APISecret         string
-	EnableOAuth       bool
-	OAuthClientID     string
-	OAuthClientSecret string
-	OAuthRedirectURL  string
-	EncryptionKey     string
-	WebhookSecret     string
+	ZoomURL       string
+	ZoomAPIURL    string
+	APIKey        string
+	APISecret     string
+	WebhookSecret string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -45,36 +38,16 @@ func (c *configuration) Clone() *configuration {
 
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
-	if _, err := isValidAuthConfig(c); err != nil {
-		return err
+	if len(c.APIKey) == 0 {
+		return fmt.Errorf("APIKey is not configured.")
 	}
 
-	switch {
-	case c.EnableLegacyAuth:
-		switch {
-		case len(c.APIKey) == 0:
-			return errors.New("please configure APIKey")
-
-		case len(c.APISecret) == 0:
-			return errors.New("please configure APISecret")
-		}
-	case c.EnableOAuth:
-		switch {
-		case len(c.OAuthClientSecret) == 0:
-			return errors.New("please configure OAuthClientSecret")
-
-		case len(c.OAuthClientID) == 0:
-			return errors.New("please configure OAuthClientID")
-
-		case len(c.EncryptionKey) == 0:
-			return errors.New("please generate EncryptionKey from Zoom plugin settings")
-		}
-	default:
-		return errors.New("please select either OAuth or Password based authentication")
+	if len(c.APISecret) == 0 {
+		return fmt.Errorf("APISecret is not configured.")
 	}
 
 	if len(c.WebhookSecret) == 0 {
-		return errors.New("please configure WebhookSecret")
+		return fmt.Errorf("WebhookSecret is not configured.")
 	}
 
 	return nil
@@ -129,29 +102,8 @@ func (p *Plugin) OnConfigurationChange() error {
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
-	if _, err := isValidAuthConfig(configuration); err != nil {
-		if apiErr := p.API.DisablePlugin(manifest.ID); apiErr != nil {
-			return errors.Wrap(apiErr, "failed to disable plugin on invalid configuration change")
-		}
-
-		return errors.Wrap(err, "failed to validate authentication configuration")
-	}
 
 	p.setConfiguration(configuration)
-	p.zoomClient = zoom.NewClient(configuration.ZoomAPIURL, configuration.APIKey, configuration.APISecret)
 
 	return nil
-}
-
-// function to validate authentication config
-func isValidAuthConfig(configuration *configuration) (bool, error) {
-	switch {
-	case configuration.EnableLegacyAuth && configuration.EnableOAuth:
-		return false, errors.New(
-			"only one authentication scheme (OAuth or Password) is allowed to be enabled at the same time")
-	case !configuration.EnableLegacyAuth && !configuration.EnableOAuth:
-		return false, errors.New("please enable authentication")
-	default:
-		return true, nil
-	}
 }

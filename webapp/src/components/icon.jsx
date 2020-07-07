@@ -2,23 +2,30 @@
 // See License for license information.
 
 import React from 'react';
-import {FormattedMessage} from 'react-intl';
+
+import {makeStyleFromTheme} from 'mattermost-redux/utils/theme_utils';
+
+import {Svgs} from '../constants';
 
 export default class Icon extends React.PureComponent {
     render() {
+        const style = getStyle();
+
         return (
-            <FormattedMessage
-                id='zoom.camera.ariaLabel'
-                defaultMessage='zoom camera icon'
-            >
-                {(ariaLabel) => (
-                    <span
-                        aria-label={ariaLabel}
-                    >
-                        <i className='icon icon-brand-zoom'/>
-                    </span>
-                )}
-            </FormattedMessage>
+            <span
+                style={style.iconStyle}
+                aria-hidden='true'
+                dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA}}
+            />
         );
     }
 }
+
+const getStyle = makeStyleFromTheme(() => {
+    return {
+        iconStyle: {
+            position: 'relative',
+            top: '-1px',
+        },
+    };
+});

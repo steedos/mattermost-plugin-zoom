@@ -5,73 +5,56 @@ package zoom
 
 import (
 	"fmt"
-	"net/http"
 )
 
-// The User object defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meeting.
+const (
+	MEETING_TYPE_INSTANT = 1
+)
+
+// The Meeting object defined at https://zoom.github.io/api/#the-meeting-object.
 type Meeting struct {
-	UUID              string `json:"uuid"`
-	ID                int    `json:"id"`
-	HostID            string `json:"host_id"`
-	Topic             string `json:"topic"`
-	Type              int    `json:"type"`
-	Status            string `json:"status"`
-	StartTime         string `json:"start_time"`
-	Duration          int    `json:"duration"`
-	Timezone          string `json:"timezone"`
-	CreatedAt         string `json:"created_at"`
-	Agenda            string `json:"agenda"`
-	JoinURL           string `json:"join_url"`
-	Password          string `json:"password"`
-	H323Password      string `json:"h323_password"`
-	EncryptedPassword string `json:"encrypted_password"`
-	PMI               int    `json:"pmi"`
-	TrackingFields    []struct {
-		Field string `json:"field"`
-		Value string `json:"value"`
-	} `json:"tracking_fields"`
-	Occurrences []struct {
-		OccurrenceID string `json:"occurrence_id"`
-		StartTime    string `json:"start_time"`
-		Duration     int    `json:"duration"`
-		Status       string `json:"status"`
-	} `json:"occurrences"`
-	Settings struct {
-		HostVideo             bool     `json:"host_video"`
-		ParticipantVideo      bool     `json:"participant_video"`
-		CNMeeting             bool     `json:"cn_meeting"`
-		INMeeting             bool     `json:"in_meeting"`
-		JoinBeforeHost        bool     `json:"join_before_host"`
-		MuteUponEntry         bool     `json:"mute_upon_entry"`
-		Watermark             bool     `json:"watermark"`
-		UsePMI                bool     `json:"use_pmi"`
-		ApprovalType          int      `json:"approval_type"`
-		RegistrationType      int      `json:"registration_type"`
-		Audio                 string   `json:"audio"`
-		AutoRecording         string   `json:"auto_recording"`
-		AlternativeHosts      string   `json:"alternative_hosts"`
-		WaitingRoom           bool     `json:"waiting_room"`
-		GlobalDialInCountries []string `json:"global_dial_in_countries"`
-		GlobalDialInNumbers   []struct {
-			Country     string `json:"country"`
-			CountryName string `json:"country_name"`
-			City        string `json:"city"`
-			Number      string `json:"number"`
-			Type        string `json:"type"`
-		} `json:"global_dial_in_numbers"`
-		ContactName                  string `json:"contact_name"`
-		ContactEmail                 string `json:"contact_email"`
-		RegistrantsConfirmationEmail bool   `json:"registrants_confirmation_email"`
-		RegistrantsEmailNotification bool   `json:"registrants_email_notification"`
-		MeetingAuthentication        bool   `json:"meeting_authentication"`
-		AuthenticationOption         string `json:"authentication_option"`
-		AuthenticationDomains        string `json:"authentication_domains"`
-		AuthenticationName           string `json:"authentication_name"`
-	} `json:"settings"`
+	ID         int         `json:"id"`
+	Topic      string      `json:"topic"`
+	Type       int         `json:"type"`
+	StartTime  string      `json:"start_time"`
+	Duration   int         `json:"duration"`
+	Timezone   string      `json:"timezone"`
+	Password   string      `json:"password"`
+	Agenda     string      `json:"agenda"`
+	Recurrence *Recurrence `json:"recurrence"`
+	Settings   *Settings   `json:"settings"`
 }
 
-func (c *Client) GetMeeting(meetingID int) (*Meeting, *ClientError) {
+type Recurrence struct {
+	Type           int    `json:"type"`
+	RepeatInterval int    `json:"repeat_interval"`
+	WeeklyDays     int    `json:"weekly_days"`
+	MonthlyDay     int    `json:"monthly_day"`
+	MonthlyWeek    int    `json:"monthly_week"`
+	MonthlyWeekDay int    `json:"monthly_week_day"`
+	EndTimes       int    `json:"end_times"`
+	EndDateTime    string `json:"end_date_time"`
+}
+
+type Settings struct {
+	HostVideo           bool   `json:"host_video"`
+	ParticipantVideo    bool   `json:"participant_video"`
+	CnMeeting           bool   `json:"cn_meeting"`
+	InMeeting           bool   `json:"in_meeting"`
+	JoinBeforeHost      bool   `json:"join_before_host"`
+	MuteUponEntry       bool   `json:"mute_upon_entry"`
+	Watermark           bool   `json:"watermark"`
+	UsePmi              bool   `json:"use_pmi"`
+	ApprovalType        int    `json:"approval_type"`
+	RegistrationType    int    `json:"registration_type"`
+	Audio               string `json:"audio"`
+	AutoRecording       string `json:"auto_recording"`
+	EnforceLogin        bool   `json:"enforce_login"`
+	EnforceLoginDomains string `json:"enforce_login_domains"`
+	AlternativeHosts    string `json:"alternative_hosts"`
+}
+
+func (c *Client) CreateMeeting(meeting *Meeting, userId string) (*Meeting, *ClientError) {
 	var ret Meeting
-	err := c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", &ret)
-	return &ret, err
+	return &ret, c.request("POST", fmt.Sprintf("/users/%v/meetings", userId), meeting, &ret)
 }

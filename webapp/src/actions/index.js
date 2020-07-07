@@ -5,25 +5,18 @@ import {PostTypes} from 'mattermost-redux/action_types';
 
 import Client from '../client';
 
-export function startMeeting(channelId, force = false) {
+export function startMeeting(channelId) {
     return async (dispatch, getState) => {
         try {
-            const startFunction = force ? Client.forceStartMeeting : Client.startMeeting;
-            const meetingURL = await startFunction(channelId, true);
-            if (meetingURL) {
-                window.open(meetingURL);
-            }
+            await Client.startMeeting(channelId, true);
         } catch (error) {
-            let m;
-            if (error.message && error.message[0] === '{') {
-                const e = JSON.parse(error.message);
-
-                // Error is from Zoom API
+            let m = 'We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom email address.';
+            if (error.response && error.response.text) {
+                const e = JSON.parse(error.response.text);
                 if (e && e.message) {
-                    m = '\nZoom error: ' + e.message;
+                    m += '\nZoom error: ' + e.message;
                 }
             }
-
             const post = {
                 id: 'zoomPlugin' + Date.now(),
                 create_at: Date.now(),

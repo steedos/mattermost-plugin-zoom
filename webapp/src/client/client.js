@@ -1,45 +1,33 @@
 // Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License for license information.
 
-import {Client4} from 'mattermost-redux/client';
-import {ClientError} from 'mattermost-redux/client/client4';
+import request from 'superagent';
 
 import {id} from '../manifest';
 
 export default class Client {
-    setServerRoute(url) {
-        this.url = url + '/plugins/' + id;
+    constructor() {
+        this.url = '/plugins/' + id;
     }
 
-    startMeeting = async (channelId, personal = true, topic = '', meetingId = 0, force = false) => {
-        const res = await doPost(`${this.url}/api/v1/meetings${force ? '?force=true' : ''}`, {channel_id: channelId, personal, topic, meeting_id: meetingId});
-        return res.meeting_url;
+    startMeeting = async (channelId, personal = true, topic = '', meetingId = 0) => {
+        return this.doPost(`${this.url}/api/v1/meetings`, {channel_id: channelId, personal, topic, meeting_id: meetingId});
     }
 
-    forceStartMeeting = async (channelId, personal = true, topic = '', meetingId = 0) => {
-        const meetingUrl = await this.startMeeting(channelId, personal, topic, meetingId, true);
-        return meetingUrl;
+    doPost = async (url, body, headers = {}) => {
+        headers['X-Requested-With'] = 'XMLHttpRequest';
+
+        try {
+            const response = await request.
+                post(url).
+                send(body).
+                set(headers).
+                type('application/json').
+                accept('application/json');
+
+            return response.body;
+        } catch (err) {
+            throw err;
+        }
     }
 }
-
-export const doPost = async (url, body, headers = {}) => {
-    const options = {
-        method: 'post',
-        body: JSON.stringify(body),
-        headers,
-    };
-
-    const response = await fetch(url, Client4.getOptions(options));
-
-    if (response.ok) {
-        return response.json();
-    }
-
-    const text = await response.text();
-
-    throw new ClientError(Client4.url, {
-        message: text || '',
-        status_code: response.status,
-        url,
-    });
-};
