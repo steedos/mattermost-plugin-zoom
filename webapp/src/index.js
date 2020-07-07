@@ -17,7 +17,7 @@ class Plugin {
             (channel) => {
                 startMeeting(channel.id)(store.dispatch, store.getState);
             },
-            'Start Zoom Meeting'
+            '发起会议'
         );
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
     }

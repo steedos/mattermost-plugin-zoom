@@ -65,7 +65,7 @@ export default class PostTypeZoom extends React.PureComponent {
         let content;
         let subtitle;
         if (props.meeting_status === 'STARTED') {
-            preText = `${this.props.creatorName} has started a meeting`;
+            preText = `发起会议`;
             content = (
                 <a
                     className='btn btn-lg btn-primary'
@@ -78,14 +78,14 @@ export default class PostTypeZoom extends React.PureComponent {
                         style={style.buttonIcon}
                         dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA_3}}
                     />
-                    {'JOIN MEETING'}
+                    {'加入会议'}
                 </a>
             );
 
             if (props.meeting_personal) {
                 subtitle = (
                     <span>
-                        {'Personal Meeting ID (PMI) : '}
+                        {'会议 ID : '}
                         <a
                             rel='noopener noreferrer'
                             target='_blank'
@@ -98,7 +98,7 @@ export default class PostTypeZoom extends React.PureComponent {
             } else {
                 subtitle = (
                     <span>
-                        {'Meeting ID : '}
+                        {'会议 ID : '}
                         <a
                             rel='noopener noreferrer'
                             target='_blank'
@@ -110,12 +110,12 @@ export default class PostTypeZoom extends React.PureComponent {
                 );
             }
         } else if (props.meeting_status === 'ENDED') {
-            preText = `${this.props.creatorName} has ended the meeting`;
+            preText = `${this.props.creatorName} 已结束会议`;
 
             if (props.meeting_personal) {
-                subtitle = 'Personal Meeting ID (PMI) : ' + props.meeting_id;
+                subtitle = '会议 ID : ' + props.meeting_id;
             } else {
-                subtitle = 'Meeting ID : ' + props.meeting_id;
+                subtitle = '会议 ID : ' + props.meeting_id;
             }
 
             const startDate = new Date(post.create_at);
@@ -134,7 +134,7 @@ export default class PostTypeZoom extends React.PureComponent {
             );
         }
 
-        let title = 'Zoom Meeting';
+        let title = '会议室';
         if (props.meeting_topic) {
             title = props.meeting_topic;
         }
