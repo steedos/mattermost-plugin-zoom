@@ -22,7 +22,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
-const defaultMeetingTopic = "Zoom Meeting"
+const defaultMeetingTopic = "会议室"
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
@@ -270,7 +270,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, length: %d minute(s).", post.Props["meeting_id"], startText, length),
 		Title:    topic,
 		Text: fmt.Sprintf(
-			"Personal Meeting ID (PMI) : %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
+			"会议 ID: %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
 			int(meetingID),
 			startText,
 			length,
@@ -314,15 +314,15 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	}
 
 	slackAttachment := model.SlackAttachment{
-		Fallback: fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+		Fallback: fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[加入会议](%s)", meetingID, meetingURL, meetingURL),
 		Title:    topic,
-		Text:     fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+		Text:     fmt.Sprintf("会议 ID : [%d](%s)\n\n[加入会议](%s)", meetingID, meetingURL, meetingURL),
 	}
 
 	post := &model.Post{
 		UserId:    creator.Id,
 		ChannelId: channelID,
-		Message:   "I have started a meeting",
+		Message:   "发起会议",
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
 			"attachments":              []*model.SlackAttachment{&slackAttachment},
