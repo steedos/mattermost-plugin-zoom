@@ -198,7 +198,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	post := &model.Post{
 		UserId:    user.Id,
 		ChannelId: req.ChannelId,
-		Message:   fmt.Sprintf("Meeting started at %s.", meetingUrl),
+		Message:   fmt.Sprintf("发起会议(点击可加入)： %s.", meetingUrl),
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
 			"meeting_id":        meetingId,
