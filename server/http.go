@@ -22,7 +22,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
-const defaultMeetingTopic = "Zoom Meeting"
+const defaultMeetingTopic = "会议室"
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
